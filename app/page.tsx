@@ -2,12 +2,13 @@
 
 import { useActionState, useId } from "react";
 import { State } from "./actions.utils";
+import { submitPrompt } from "./actions";
 
 export default function Home() {
-  const [_formState, formAction] = useActionState<State, FormData>((state) => {
-    console.log(state);
-    return state;
-  }, null);
+  const [_formState, formAction] = useActionState<State, FormData>(
+    submitPrompt,
+    null
+  );
 
   const promptFieldId = useId();
 
