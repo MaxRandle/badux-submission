@@ -8,6 +8,7 @@ import {
   SUBMIT_DATE_TOOL,
   tryCatch,
 } from "./actions.utils";
+import { ResponseInput } from "openai/resources/responses/responses.mjs";
 
 type ConversationMessage = {
   role: "user" | "assistant";
@@ -101,6 +102,20 @@ export const submitToAssistant = async (
     };
   }
 
+  const inputHistory: ResponseInput = [
+    ...previousConversation.map((message) => ({
+      role: message.role,
+      content: message.content,
+    })),
+    {
+      role: "user",
+      content: prompt,
+    },
+  ];
+
+  // Limit to last 20 messages to control token usage
+  const trimmedInputHistory = inputHistory.slice(-20);
+
   const { data: response, error } = await tryCatch(
     openAiClient.responses.create({
       model: "gpt-4.1-mini",
@@ -108,18 +123,10 @@ export const submitToAssistant = async (
       instructions: MALICE_BOT_INSTRUCTIONS,
       tools: [SUBMIT_DATE_TOOL],
       tool_choice: "auto",
-      temperature: 1.2,
-      input: [
-        ...previousConversation.map((message) => ({
-          role: message.role,
-          content: message.content,
-        })),
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      max_output_tokens: 1000,
+      temperature: 1,
+      input: trimmedInputHistory,
+      max_output_tokens: 250,
+      parallel_tool_calls: true,
     })
   );
 

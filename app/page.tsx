@@ -13,7 +13,7 @@ export default function Home() {
   const displayDate =
     formState?.result?.date !== undefined
       ? formState.result.date
-      : "-- -- ----";
+      : "---- -- --";
 
   return (
     <main className="">
