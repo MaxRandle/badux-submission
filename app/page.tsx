@@ -10,6 +10,10 @@ export default function Home() {
   );
 
   const messageFieldId = useId();
+  const displayDate =
+    formState?.result?.date !== undefined
+      ? formState.result.date
+      : "-- -- ----";
 
   return (
     <main className="">
@@ -18,7 +22,7 @@ export default function Home() {
           <div>
             <h1 className="text-2xl font-medium text-gray-300">Date:</h1>
             <h2 className="mt-2 text-4xl font-medium text-gray-300">
-              -- -- ----
+              {displayDate}
             </h2>
           </div>
 

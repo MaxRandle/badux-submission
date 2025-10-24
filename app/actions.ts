@@ -1,49 +1,85 @@
 "use server";
 
 import OpenAI from "openai";
-import type { Assistant } from "openai/resources/beta/assistants";
-import { State } from "./actions.utils";
+import {
+  HELPFUL_BOT_INSTRUCTIONS,
+  MALICE_BOT_INSTRUCTIONS,
+  State,
+  SUBMIT_DATE_TOOL,
+  tryCatch,
+} from "./actions.utils";
 
 export type OpenAiResponse = {
   id: string;
   prompt: string;
   response: string;
+  date?: string;
 };
 
 const apiKey = process.env.OPENAI_API_KEY;
 const assistantId = process.env.OPENAI_ASSISTANT_ID;
 
 const openAiClient = apiKey ? new OpenAI({ apiKey }) : null;
-let assistantConfigPromise: Promise<Assistant> | null = null;
 
-const loadAssistantConfig = async (): Promise<Assistant | null> => {
-  if (!openAiClient || !assistantId) {
-    return null;
+type SubmitResult = State<OpenAiResponse>;
+type ResponsesCreateResult = Awaited<
+  ReturnType<InstanceType<typeof OpenAI>["responses"]["create"]>
+>;
+type ResponsesCreateResponse = Extract<
+  ResponsesCreateResult,
+  { object: "response" }
+>;
+
+const extractSubmitDate = (
+  response: ResponsesCreateResponse
+): string | null => {
+  const items = Array.isArray(response.output) ? response.output : [];
+
+  for (const item of items) {
+    if (
+      item &&
+      typeof item === "object" &&
+      "type" in item &&
+      item.type === "function_call" &&
+      "name" in item &&
+      item.name === "submit_date" &&
+      "arguments" in item
+    ) {
+      const rawArgs = item.arguments;
+
+      try {
+        const parsedArgs =
+          typeof rawArgs === "string" ? JSON.parse(rawArgs) : rawArgs;
+
+        if (
+          parsedArgs &&
+          typeof parsedArgs === "object" &&
+          "date" in parsedArgs &&
+          typeof (parsedArgs as { date?: unknown }).date === "string"
+        ) {
+          return (parsedArgs as { date: string }).date;
+        }
+      } catch (error) {
+        console.error("Unable to parse submit_date arguments:", error);
+      }
+    }
   }
 
-  if (!assistantConfigPromise) {
-    assistantConfigPromise = openAiClient.beta.assistants.retrieve(assistantId);
-  }
-
-  try {
-    return await assistantConfigPromise;
-  } catch (error) {
-    console.error("Failed to fetch assistant configuration:", error);
-    assistantConfigPromise = null;
-    return null;
-  }
+  return null;
 };
 
 export const submitToAssistant = async (
-  _prevState: State<OpenAiResponse>,
+  prevState: SubmitResult,
   formData: FormData
-): Promise<State<OpenAiResponse>> => {
+): Promise<SubmitResult> => {
   const prompt = (formData.get("message") as string | null)?.trim();
+  const previousResult = prevState?.result;
 
   if (!prompt) {
     return {
       status: "error",
       message: "Please enter a prompt before submitting.",
+      result: previousResult,
     };
   }
 
@@ -58,49 +94,49 @@ export const submitToAssistant = async (
       status: "error",
       message:
         "OpenAI credentials are not configured on the server. Set OPENAI_API_KEY and OPENAI_ASSISTANT_ID and try again.",
+      result: previousResult,
     };
   }
 
-  try {
-    const assistant = await loadAssistantConfig();
-
-    if (!assistant) {
-      return {
-        status: "error",
-        message:
-          "Unable to load the configured assistant. Check the assistant ID and try again.",
-      };
-    }
-
-    const response = await openAiClient.responses.create({
-      model: assistant.model,
-      instructions: assistant.instructions ?? undefined,
+  const { data: response, error } = await tryCatch(
+    openAiClient.responses.create({
+      model: "gpt-4.1-nano",
+      // instructions: HELPFUL_BOT_INSTRUCTIONS,
+      instructions: MALICE_BOT_INSTRUCTIONS,
+      tools: [SUBMIT_DATE_TOOL],
+      tool_choice: "auto",
       input: [
         {
           role: "user",
           content: prompt,
         },
       ],
-    });
+      max_output_tokens: 1000,
+    })
+  );
 
-    console.log(response.output_text);
-
+  if (error) {
+    console.error("Error from OpenAI API:", error);
     return {
-      status: "success",
-      message: "OpenAI responded successfully.",
-      result: {
-        id: response.id,
-        prompt,
-        response: response.output_text ?? "",
-      },
-    };
-  } catch (error) {
-    console.error("Failed to fetch OpenAI response:", error);
-
-    return {
-      status: "error",
       message:
-        "We ran into a problem talking to OpenAI. Please try again in a moment.",
+        error.message ??
+        "An unknown error occurred while communicating with OpenAI.",
+      status: "error",
     };
   }
+
+  console.log("OUTPUT", JSON.stringify(response.output, null, 2));
+
+  const submittedDate = extractSubmitDate(response) ?? previousResult?.date;
+
+  return {
+    status: "success",
+    message: "OpenAI responded successfully.",
+    result: {
+      id: response.id,
+      prompt,
+      response: response.output_text ?? "",
+      date: submittedDate ?? undefined,
+    },
+  };
 };
