@@ -9,11 +9,17 @@ import {
   tryCatch,
 } from "./actions.utils";
 
+type ConversationMessage = {
+  role: "user" | "assistant";
+  content: string;
+};
+
 export type OpenAiResponse = {
   id: string;
   prompt: string;
   response: string;
   date?: string;
+  conversation: ConversationMessage[];
 };
 
 const apiKey = process.env.OPENAI_API_KEY;
@@ -74,6 +80,7 @@ export const submitToAssistant = async (
 ): Promise<SubmitResult> => {
   const prompt = (formData.get("message") as string | null)?.trim();
   const previousResult = prevState?.result;
+  const previousConversation = previousResult?.conversation ?? [];
 
   if (!prompt) {
     return {
@@ -100,12 +107,17 @@ export const submitToAssistant = async (
 
   const { data: response, error } = await tryCatch(
     openAiClient.responses.create({
-      model: "gpt-4.1-nano",
+      model: "gpt-4.1-mini",
       // instructions: HELPFUL_BOT_INSTRUCTIONS,
       instructions: MALICE_BOT_INSTRUCTIONS,
       tools: [SUBMIT_DATE_TOOL],
       tool_choice: "auto",
+      temperature: 1.2,
       input: [
+        ...previousConversation.map((message) => ({
+          role: message.role,
+          content: message.content,
+        })),
         {
           role: "user",
           content: prompt,
@@ -128,6 +140,13 @@ export const submitToAssistant = async (
   console.log("OUTPUT", JSON.stringify(response.output, null, 2));
 
   const submittedDate = extractSubmitDate(response) ?? previousResult?.date;
+  const assistantReply = response.output_text ?? "";
+
+  const updatedConversation: ConversationMessage[] = [
+    ...previousConversation,
+    { role: "user", content: prompt },
+    { role: "assistant", content: assistantReply },
+  ];
 
   return {
     status: "success",
@@ -135,8 +154,9 @@ export const submitToAssistant = async (
     result: {
       id: response.id,
       prompt,
-      response: response.output_text ?? "",
+      response: assistantReply,
       date: submittedDate ?? undefined,
+      conversation: updatedConversation,
     },
   };
 };

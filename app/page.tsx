@@ -28,9 +28,6 @@ export default function Home() {
 
           {formState?.status === "success" ? (
             <div className="space-y-2">
-              <p className="text-xs uppercase text-gray-500">Prompt</p>
-              <p className="text-sm text-gray-300">{formState.result.prompt}</p>
-              <p className="text-xs uppercase text-gray-500 mt-3">Response</p>
               <p className="italic text-gray-200 whitespace-pre-line">
                 {formState.result.response}
               </p>
@@ -50,14 +47,6 @@ export default function Home() {
               <p
                 id={`${messageFieldId}-error`}
                 className="text-sm text-red-500"
-              >
-                {formState.message}
-              </p>
-            ) : null}
-            {formState?.status === "success" ? (
-              <p
-                id={`${messageFieldId}-helper`}
-                className="text-sm text-green-500"
               >
                 {formState.message}
               </p>
