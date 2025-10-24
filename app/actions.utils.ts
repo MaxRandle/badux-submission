@@ -43,6 +43,7 @@ export async function tryCatch<T, E = Error>(
     return { data: null, error: error as E };
   }
 }
+export const MAX_PROMPT_LENGTH = 250;
 
 export type State<T = undefined> = SuccessState<T> | ErrorState<T> | null;
 

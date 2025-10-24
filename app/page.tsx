@@ -2,6 +2,7 @@
 
 import { useActionState, useId } from "react";
 import { submitToAssistant } from "./actions";
+import { MAX_PROMPT_LENGTH } from "./actions.utils";
 
 export default function Home() {
   const [formState, formAction, isPending] = useActionState(
@@ -40,6 +41,7 @@ export default function Home() {
               className="w-full p-2 border border-gray-300 rounded mt-2"
               name="message"
               id={messageFieldId}
+              maxLength={MAX_PROMPT_LENGTH}
               aria-describedby={`${messageFieldId}-error`}
               disabled={isPending}
               onKeyDown={(event) => {
@@ -49,6 +51,7 @@ export default function Home() {
                 }
               }}
             />
+            <p className="text-xs text-gray-500 mt-2">Max 500 characters.</p>
             {formState?.status === "error" ? (
               <p
                 id={`${messageFieldId}-error`}

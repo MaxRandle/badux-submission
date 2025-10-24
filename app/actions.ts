@@ -4,6 +4,7 @@ import OpenAI from "openai";
 import {
   HELPFUL_BOT_INSTRUCTIONS,
   MALICE_BOT_INSTRUCTIONS,
+  MAX_PROMPT_LENGTH,
   State,
   SUBMIT_DATE_TOOL,
   tryCatch,
@@ -86,6 +87,14 @@ export const submitToAssistant = async (
     return {
       status: "error",
       message: "Please enter a date before submitting.",
+      result: previousResult,
+    };
+  }
+
+  if (prompt.length > MAX_PROMPT_LENGTH) {
+    return {
+      status: "error",
+      message: `Inputs are limited to ${MAX_PROMPT_LENGTH} characters.`,
       result: previousResult,
     };
   }
