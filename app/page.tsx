@@ -51,7 +51,6 @@ export default function Home() {
                 }
               }}
             />
-            <p className="text-xs text-gray-500 mt-2">Max 500 characters.</p>
             {formState?.status === "error" ? (
               <p
                 id={`${messageFieldId}-error`}
