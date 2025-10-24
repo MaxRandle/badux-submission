@@ -23,7 +23,6 @@ export type OpenAiResponse = {
 };
 
 const apiKey = process.env.OPENAI_API_KEY;
-const assistantId = process.env.OPENAI_ASSISTANT_ID;
 
 const openAiClient = apiKey ? new OpenAI({ apiKey }) : null;
 
@@ -90,12 +89,9 @@ export const submitToAssistant = async (
     };
   }
 
-  if (!openAiClient || !assistantId) {
+  if (!openAiClient) {
     if (!openAiClient) {
       console.error("OPENAI_API_KEY is not set.");
-    }
-    if (!assistantId) {
-      console.error("OPENAI_ASSISTANT_ID is not set.");
     }
     return {
       status: "error",
