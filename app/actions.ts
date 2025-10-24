@@ -85,7 +85,7 @@ export const submitToAssistant = async (
   if (!prompt) {
     return {
       status: "error",
-      message: "Please enter a prompt before submitting.",
+      message: "Please enter a date before submitting.",
       result: previousResult,
     };
   }
