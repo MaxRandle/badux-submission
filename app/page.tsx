@@ -42,6 +42,12 @@ export default function Home() {
               id={messageFieldId}
               aria-describedby={`${messageFieldId}-error`}
               disabled={isPending}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.shiftKey && !isPending) {
+                  event.preventDefault();
+                  event.currentTarget.form?.requestSubmit();
+                }
+              }}
             />
             {formState?.status === "error" ? (
               <p
